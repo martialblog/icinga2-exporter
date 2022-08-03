@@ -11,9 +11,9 @@ import (
 )
 
 type result struct {
-	Name     string     `json:"name"`
-	Status   status     `json:"status,omitempty"`
-	Perfdata []perfdata `json:"perfdata,omitempty"`
+	Name     string             `json:"name"`
+	Status   map[string]float64 `json:"status,omitempty"`
+	Perfdata []perfdata         `json:"perfdata,omitempty"`
 }
 
 type Results struct {
@@ -23,12 +23,6 @@ type Results struct {
 type perfdata struct {
 	Label string  `json:"label"`
 	Value float64 `json:"value"`
-}
-
-type status struct {
-	NumHostsUp   float64 `json:"num_hosts_up"`
-	NumHostsDown float64 `json:"num_hosts_down"`
-	Uptime       float64 `json:"uptime"`
 }
 
 func BasicAuth(username, password string) string {
@@ -55,6 +49,7 @@ func getMetrics(url string) result {
 	}
 
 	client := &http.Client{Transport: tr, Timeout: 10 * time.Second}
+
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -62,8 +57,12 @@ func getMetrics(url string) result {
 	}
 
 	var res Results
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		log.Fatal(err)
+	er := json.NewDecoder(resp.Body).Decode(&res)
+
+	// Since the status Object in the API has nested Objects
+	// that we ignore for now
+	if er != nil && er != er.(*json.UnmarshalTypeError) {
+		log.Fatal(er)
 	}
 
 	defer resp.Body.Close()
