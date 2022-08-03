@@ -20,7 +20,7 @@ func (collector *icinga2APICollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (collector *icinga2APICollector) Collect(ch chan<- prometheus.Metric) {
 	// TOOD Golang 1.19 https://pkg.go.dev/net/url@master#JoinPath
-	url := JoinPath(apiBaseURL, "/ApiListener")
+	url := JoinPath(apiBaseURL, "/status/ApiListener")
 	icinga := getMetrics(url)
 
 	// Transform to map so that we can access it easily

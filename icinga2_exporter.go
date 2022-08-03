@@ -12,7 +12,7 @@ import (
 var (
 	listenAddress = flag.String("web.listen-address", ":9665", "Address on which to expose metrics and web interface.")
 	metricsPath   = flag.String("web.metrics-path", "/metrics", "Path under which to expose metrics.")
-	apiBaseURL    = "https://localhost:5665/v1/status"
+	apiBaseURL    = "https://localhost:5665/v1"
 	apiUsername   = "root"
 	apiPassword   = "password"
 	apiInsecure   = false

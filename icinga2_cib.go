@@ -26,7 +26,7 @@ func (collector *icinga2CIBCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (collector *icinga2CIBCollector) Collect(ch chan<- prometheus.Metric) {
 	// TOOD Golang 1.19 https://pkg.go.dev/net/url@master#JoinPath
-	url := JoinPath(apiBaseURL, "/CIB")
+	url := JoinPath(apiBaseURL, "/status/CIB")
 	icinga := getMetrics(url).Status
 
 	ch <- prometheus.MustNewConstMetric(collector.uptime, prometheus.GaugeValue, icinga["uptime"])
