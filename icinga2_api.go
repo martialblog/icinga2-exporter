@@ -6,17 +6,27 @@ import (
 )
 
 type icinga2APICollector struct {
-	apinumhttpclients *prometheus.Desc
+	api_num_conn_endpoints     *prometheus.Desc
+	api_num_not_conn_endpoints *prometheus.Desc
+	api_num_endpoints          *prometheus.Desc
+	api_num_http_clients       *prometheus.Desc
 }
 
 func NewIcinga2APICollector() *icinga2APICollector {
 	return &icinga2APICollector{
-		apinumhttpclients: prometheus.NewDesc("icinga2_api_numhttpclients", "Number of HTTP Clients", nil, nil),
+		api_num_conn_endpoints:     prometheus.NewDesc("icinga2_api_num_conn_endpoints", "Number of connected Endpoints", nil, nil),
+		api_num_not_conn_endpoints: prometheus.NewDesc("icinga2_api_num_not_conn_endpoints", "Number of not connected Endpoints", nil, nil),
+		api_num_endpoints:          prometheus.NewDesc("icinga2_api_num_endpoints", "Number of Endpoints", nil, nil),
+		api_num_http_clients:       prometheus.NewDesc("icinga2_api_num_http_clients", "Number of HTTP Clients", nil, nil),
 	}
 }
 
 func (collector *icinga2APICollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- collector.apinumhttpclients
+	ch <- collector.api_num_conn_endpoints
+	ch <- collector.api_num_not_conn_endpoints
+	ch <- collector.api_num_endpoints
+	ch <- collector.api_num_http_clients
+
 }
 
 func (collector *icinga2APICollector) Collect(ch chan<- prometheus.Metric) {
@@ -30,5 +40,8 @@ func (collector *icinga2APICollector) Collect(ch chan<- prometheus.Metric) {
 		perfdata[v.Label] = v.Value
 	}
 
-	ch <- prometheus.MustNewConstMetric(collector.apinumhttpclients, prometheus.GaugeValue, perfdata["api_num_http_clients"])
+	ch <- prometheus.MustNewConstMetric(collector.api_num_conn_endpoints, prometheus.GaugeValue, perfdata["api_num_conn_endpoints"])
+	ch <- prometheus.MustNewConstMetric(collector.api_num_not_conn_endpoints, prometheus.GaugeValue, perfdata["api_num_not_conn_endpoints"])
+	ch <- prometheus.MustNewConstMetric(collector.api_num_endpoints, prometheus.GaugeValue, perfdata["api_num_endpoints"])
+	ch <- prometheus.MustNewConstMetric(collector.api_num_http_clients, prometheus.GaugeValue, perfdata["api_num_http_clients"])
 }
