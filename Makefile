@@ -5,4 +5,4 @@ build:
 fmt:
 	go fmt *.go
 test:
-	go test
+	go test -v
