@@ -50,19 +50,19 @@ func getMetrics(url string) result {
 
 	client := &http.Client{Transport: tr, Timeout: 10 * time.Second}
 
-	resp, err := client.Do(req)
+	resp, httpErr := client.Do(req)
 
-	if err != nil {
-		log.Fatal(err)
+	if httpErr != nil {
+		log.Fatal(httpErr)
 	}
 
 	var res Results
-	er := json.NewDecoder(resp.Body).Decode(&res)
+	jsonErr := json.NewDecoder(resp.Body).Decode(&res)
 
 	// Since the status Object in the API has nested Objects
-	// that we ignore for now
-	if er != nil && er != er.(*json.UnmarshalTypeError) {
-		log.Fatal(er)
+	// Let's ignore that for now
+	if jsonErr != nil && jsonErr != jsonErr.(*json.UnmarshalTypeError) {
+		log.Fatal(jsonErr)
 	}
 
 	defer resp.Body.Close()
