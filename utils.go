@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -28,11 +27,6 @@ type perfdata struct {
 func BasicAuth(username, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
-}
-
-func JoinPath(base string, elem string) string {
-	b := strings.TrimLeft(base, "/")
-	return b + elem
 }
 
 func getMetrics(url string) result {
