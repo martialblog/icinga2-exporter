@@ -26,7 +26,6 @@ func (collector *icinga2APICollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- collector.api_num_not_conn_endpoints
 	ch <- collector.api_num_endpoints
 	ch <- collector.api_num_http_clients
-
 }
 
 func (collector *icinga2APICollector) Collect(ch chan<- prometheus.Metric) {
