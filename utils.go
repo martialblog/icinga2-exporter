@@ -30,11 +30,9 @@ func BasicAuth(username, password string) string {
 }
 
 func getMetrics(url string) result {
-	req, err := http.NewRequest("GET", url, nil)
+	var res Results
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	req, _ := http.NewRequest("GET", url, nil)
 
 	req.Header.Add("Authorization", "Basic "+BasicAuth(apiUsername, apiPassword))
 
@@ -47,18 +45,29 @@ func getMetrics(url string) result {
 	resp, httpErr := client.Do(req)
 
 	if httpErr != nil {
-		log.Fatal(httpErr)
+		log.Print("Error: ", httpErr)
+		return result{}
 	}
 
-	var res Results
+	if resp.StatusCode != http.StatusOK {
+		log.Print("Error: ", resp.StatusCode, " ", url)
+		return result{}
+	}
+
+	defer resp.Body.Close()
 	jsonErr := json.NewDecoder(resp.Body).Decode(&res)
 
 	// Since the status Object in the API has nested Objects
 	// Let's ignore that for now
-	if jsonErr != nil && jsonErr != jsonErr.(*json.UnmarshalTypeError) {
-		log.Fatal(jsonErr)
+	if _, ok := jsonErr.(*json.UnmarshalTypeError); !ok && jsonErr != nil {
+		log.Print("Error:", jsonErr)
+		return result{}
 	}
 
-	defer resp.Body.Close()
-	return res.Results[0]
+	// TODO There's gotta be a better way?
+	if len(res.Results) > 0 {
+		return res.Results[0]
+	}
+
+	return result{}
 }

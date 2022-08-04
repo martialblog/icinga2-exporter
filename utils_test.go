@@ -17,10 +17,9 @@ func TestBasicAuth(t *testing.T) {
 }
 
 type MetricTest struct {
-	name          string
-	server        *httptest.Server
-	response      result
-	expectedError error
+	name     string
+	server   *httptest.Server
+	response result
 }
 
 func TestGetMetrics(t *testing.T) {
@@ -36,7 +35,6 @@ func TestGetMetrics(t *testing.T) {
 				Status:   map[string]float64{"active_host_checks": 0.1, "active_host_checks_15min": 15},
 				Perfdata: []perfdata{},
 			},
-			expectedError: nil,
 		},
 		{
 			name: "api-ok",
@@ -49,7 +47,34 @@ func TestGetMetrics(t *testing.T) {
 				Status:   map[string]float64{},
 				Perfdata: []perfdata{{Label: "api_endpoints", Value: 1.0}},
 			},
-			expectedError: nil,
+		},
+		{
+			name: "cib-nested",
+			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"results":[{"name":"CIB","perfdata":[],"status": {"api": {"foo": []}}}]}`))
+			})),
+			response: result{
+				Name:     "CIB",
+				Status:   map[string]float64{"api": 0},
+				Perfdata: []perfdata{},
+			},
+		},
+		{
+			name: "nodata",
+			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"res":[]}`))
+			})),
+			response: result{},
+		},
+		{
+			name: "cib-invalid",
+			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{"invalid":[]`))
+			})),
+			response: result{},
 		},
 	}
 
@@ -57,6 +82,7 @@ func TestGetMetrics(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			defer test.server.Close()
 			actual := getMetrics(test.server.URL)
+
 			if !reflect.DeepEqual(actual.Status, test.response.Status) || !reflect.DeepEqual(actual.Perfdata, test.response.Perfdata) {
 				t.Fatal("actual:", actual, "expected:", test.response)
 			}
