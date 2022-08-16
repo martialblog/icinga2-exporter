@@ -9,6 +9,8 @@ import (
 	"os"
 )
 
+var build = "development"
+
 var (
 	listenAddress = flag.String("web.listen-address", ":9665", "Address on which to expose metrics and web interface.")
 	metricsPath   = flag.String("web.metrics-path", "/metrics", "Path under which to expose metrics.")
@@ -57,6 +59,7 @@ func main() {
 			</html>`))
 	})
 
-	log.Printf("Listening on address %s", *listenAddress)
+	log.Printf("Version: %s", build)
+	log.Printf("Listening on address: %s", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
 }
