@@ -53,7 +53,7 @@ func (collector *icinga2CIBCollector) Collect(ch chan<- prometheus.Metric) {
 	url, _ := url.JoinPath(apiBaseURL, "/status/CIB")
 	icinga := getMetrics(url).Status
 
-	ch <- prometheus.MustNewConstMetric(collector.uptime, prometheus.GaugeValue, icinga["uptime"])
+	ch <- prometheus.MustNewConstMetric(collector.uptime, prometheus.CounterValue, icinga["uptime"])
 	ch <- prometheus.MustNewConstMetric(collector.num_hosts_up, prometheus.GaugeValue, icinga["num_hosts_up"])
 	ch <- prometheus.MustNewConstMetric(collector.num_hosts_down, prometheus.GaugeValue, icinga["num_hosts_down"])
 	ch <- prometheus.MustNewConstMetric(collector.num_services_ok, prometheus.GaugeValue, icinga["num_services_ok"])
