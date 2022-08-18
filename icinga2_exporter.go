@@ -14,6 +14,7 @@ var build = "development"
 var (
 	listenAddress = flag.String("web.listen-address", ":9665", "Address on which to expose metrics and web interface.")
 	metricsPath   = flag.String("web.metrics-path", "/metrics", "Path under which to expose metrics.")
+	msqlMetrics   = flag.Bool("msql", false, "Enable MySQL Metrics")
 	apiBaseURL    = "https://localhost:5665/v1"
 	apiUsername   = "root"
 	apiPassword   = "password"
@@ -46,6 +47,10 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	if *msqlMetrics {
+		prometheus.MustRegister(NewIcinga2MySQLCollector())
+	}
 
 	http.Handle(*metricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
