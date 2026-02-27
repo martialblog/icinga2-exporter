@@ -111,6 +111,7 @@ func main() {
 
 	// Register Collectors
 	prometheus.MustRegister(collector.NewIcinga2CIBCollector(c, logger))
+	prometheus.MustRegister(collector.NewIcinga2ApplicationCollector(c, logger))
 
 	if cliCollectorApiListener {
 		prometheus.MustRegister(collector.NewIcinga2APICollector(c, logger))
