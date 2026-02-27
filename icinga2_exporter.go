@@ -2,69 +2,133 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"log"
+	"log/slog"
+	"net/http"
+	"net/url"
+	"os"
+
+	"github.com/martialblog/icinga2-exporter/internal/collector"
+	"github.com/martialblog/icinga2-exporter/internal/icinga"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"log"
-	"net/http"
-	"os"
 )
 
-var build = "development"
-
+// nolint: gochecknoglobals
 var (
-	listenAddress = flag.String("web.listen-address", ":9665", "Address on which to expose metrics and web interface.")
-	metricsPath   = flag.String("web.metrics-path", "/metrics", "Path under which to expose metrics.")
-	msqlMetrics   = flag.Bool("msql", false, "Enable MySQL Metrics")
-	apiBaseURL    = "https://localhost:5665/v1"
-	apiUsername   = "root"
-	apiPassword   = "password"
-	apiInsecure   = false
+	// These get filled at build time with the proper vaules.
+	version = "development"
+	commit  = "HEAD"
+	date    = "latest"
 )
 
-func init() {
-	if baseurl, provided := os.LookupEnv("ICINGA2_EXPORTER_BASE_URL"); provided {
-		apiBaseURL = baseurl
+func buildVersion() string {
+	result := version
+
+	if commit != "" {
+		result = fmt.Sprintf("%s\ncommit: %s", result, commit)
 	}
 
-	if username, provided := os.LookupEnv("ICINGA2_EXPORTER_USERNAME"); provided {
-		apiUsername = username
+	if date != "" {
+		result = fmt.Sprintf("%s\ndate: %s", result, date)
 	}
 
-	if password, provided := os.LookupEnv("ICINGA2_EXPORTER_PASSWORD"); provided {
-		apiPassword = password
-	} else {
-		log.Printf("Warning: No API Password provided")
-	}
-
-	if _, provided := os.LookupEnv("ICINGA2_EXPORTER_TLS_INSECURE"); provided {
-		apiInsecure = true
-	}
-
-	// Register Collectors
-	prometheus.MustRegister(NewIcinga2CIBCollector())
-	prometheus.MustRegister(NewIcinga2APICollector())
+	return result
 }
 
 func main() {
+	var (
+		cliListenAddress        string
+		cliMetricsPath          string
+		cliCAFile               string
+		cliCertFile             string
+		cliKeyFile              string
+		cliUsername             string
+		cliPassword             string
+		cliBaseURL              string
+		cliVersion              bool
+		cliDebugLog             bool
+		cliInsecure             bool
+		cliCollectorApiListener bool
+	)
+
+	flag.StringVar(&cliListenAddress, "web.listen-address", ":9665", "Address on which to expose metrics and web interface.")
+	flag.StringVar(&cliMetricsPath, "web.metrics-path", "/metrics", "Path under which to expose metrics.")
+
+	flag.StringVar(&cliBaseURL, "icinga.api", "https://localhost:5665/v1", "Path to the Icinga2 API")
+	flag.StringVar(&cliUsername, "icinga.username", "", "Icinga2 API Username")
+	flag.StringVar(&cliPassword, "icinga.password", "", "Icinga2 API Password")
+	flag.StringVar(&cliCAFile, "icinga.cafile", "", "Path to the Icinga2 API TLS CA")
+	flag.StringVar(&cliCertFile, "icinga.certfile", "", "Path to the Icinga2 API TLS cert")
+	flag.StringVar(&cliKeyFile, "icinga.keyfile", "", "Path to the Icinga2 API TLS key")
+	flag.BoolVar(&cliInsecure, "icinga.insecure", false, "Skip TLS verification for Icinga2 API")
+
+	flag.BoolVar(&cliCollectorApiListener, "collector.apilistener", false, "Include APIListener data")
+
+	flag.BoolVar(&cliVersion, "version", false, "Print version")
+	flag.BoolVar(&cliDebugLog, "debug", false, "Enable debug logging")
+
 	flag.Parse()
 
-	if *msqlMetrics {
-		prometheus.MustRegister(NewIcinga2MySQLCollector())
+	if cliVersion {
+		fmt.Printf("icinga-exporter version: %s\n", version)
+		os.Exit(0)
 	}
 
-	http.Handle(*metricsPath, promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	u, errURL := url.Parse(cliBaseURL)
+
+	if errURL != nil {
+		fmt.Fprintf(os.Stderr, "Invalid Icinga2 URL: %v", errURL)
+	}
+
+	logLevel := slog.LevelInfo
+
+	if cliDebugLog {
+		logLevel = slog.LevelDebug
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
+
+	config := icinga.Config{
+		BasicAuthUsername: cliUsername,
+		BasicAuthPassword: cliPassword,
+		CAFile:            cliCAFile,
+		CertFile:          cliCertFile,
+		KeyFile:           cliKeyFile,
+		Insecure:          cliInsecure,
+		IcingaAPIURI:      *u,
+	}
+
+	c, errCli := icinga.NewClient(config)
+
+	if errCli != nil {
+		fmt.Fprintf(os.Stderr, "Could not create Icinga2 client : %v", errCli)
+	}
+
+	// Register Collectors
+	prometheus.MustRegister(collector.NewIcinga2CIBCollector(c, logger))
+
+	if cliCollectorApiListener {
+		prometheus.MustRegister(collector.NewIcinga2APICollector(c, logger))
+	}
+
+	http.Handle(cliMetricsPath, promhttp.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`
 			<html>
 			<head><title>Icinga2 Exporter</title></head>
 			<body>
 			<h1>Icinga2 Exporter</h1>
-			<p><a href="` + *metricsPath + `">Metrics</a></p>
+			<p><a href="` + cliMetricsPath + `">Metrics</a></p>
 			</body>
 			</html>`))
 	})
 
-	log.Printf("Version: %s", build)
-	log.Printf("Listening on address: %s", *listenAddress)
-	log.Fatal(http.ListenAndServe(*listenAddress, nil))
+	log.Printf("Version: %s", buildVersion())
+	log.Printf("Listening on address: %s", cliListenAddress)
+	log.Fatal(http.ListenAndServe(cliListenAddress, nil))
 }

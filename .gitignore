@@ -1,4 +1,28 @@
-icinga2-exporter
+# Editors
 *.~undo-tree~
 \#*
 .\#*
+TODO*
+
+# Coverage and benchmark reports
+coverage.html
+coverage.out
+*.profile
+*.benchmark
+
+# Binaries for programs and plugins
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
