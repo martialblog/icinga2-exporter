@@ -1,4 +1,5 @@
-icinga2-exporter
+dist/
 *.~undo-tree~
 \#*
 .\#*
+TODO*
