@@ -15,5 +15,10 @@ lint:
 	go fmt $(go list ./... | grep -v /vendor/)
 vet:
 	go vet $(go list ./... | grep -v /vendor/)
+test:
+	go test -v -race ./...
+coverage:
+	go test -v -cover -coverprofile=coverage.out ./... &&\
+	go tool cover -html=coverage.out -o coverage.html
 clean:
 	rm -f dist/*
